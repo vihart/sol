@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+
+<html lang="en">
+	<head>
+		<title>Drawing in WebVR!</title>
+		<!--
+		Attribution
+		eleVR webvr boilerplate: https://github.com/hawksley
+		-->
+	</head>
+
+	<body>
+	</body>
+
+
+	<script src="js/three.min.js"></script>
+	<script src="js/VRControls.js"></script>
+	<script src="js/VREffect.js"></script>
+	<script src="lib/gl-matrix.js"></script>
+	<script src="js/PhoneVR.js"></script>
+
+	<script>
+		var debug = false;
+
+		var c = 1; //scale factor
+		/*
+		Setup three.js WebGL renderer
+		*/
+		var renderer = new THREE.WebGLRenderer( { antialias: true } );
+		renderer.setClearColor( 0x0099aa );
+		/*
+		Append the canvas element created by the renderer to document body element.
+		*/
+		document.body.appendChild( renderer.domElement );
+		/*
+		Create a three.js scene
+		*/
+		var scene = new THREE.Scene();
+		/*
+		Create a three.js camera
+		*/
+		var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.001, 10000 );
+
+		/*
+		Apply VR headset positional data to camera.
+		*/
+		var controls = new THREE.VRControls( camera, undefined, 4 );
+
+		/*
+		Apply VR stereo rendering to renderer
+		*/
+		var effect = new THREE.VREffect( renderer );
+		effect.setSize( window.innerWidth, window.innerHeight );
+
+		
+		var everything = new THREE.Object3D;
+
+		/*
+		Light
+		*/
+
+		var light = new THREE.AmbientLight( 0x333333 );
+		everything.add( light );
+
+		var light2 = new THREE.PointLight( 0xffffff, 0.5, 100 );
+		light2.intensity = 1;
+		light2.position.set(0,2,-1);
+		everything.add( light2 );
+
+		var light3 = new THREE.PointLight( 0xffffff, 1, 200 );
+		light3.intensity = 1;
+		light3.position.set(5,5,5);
+		everything.add( light3 );
+
+
+
+		/*
+		Skybox
+		*/
+		var skyMaterial = new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, wireframe: true } );
+		var skyGeometry1 = new THREE.SphereGeometry(55, 30, 30);
+		var skybox = new THREE.Mesh( skyGeometry1, skyMaterial );
+		skybox.material.color.setRGB(0,0.4,0.5);
+		everything.add( skybox );
+
+		/*
+		Floor
+		*/
+		var floorGeometry = new THREE.PlaneBufferGeometry( 10, 10, 10 );
+		var floorMaterial = new THREE.MeshLambertMaterial( { color: 0x04ffa1, side: THREE.DoubleSide} );
+		var floor = new THREE.Mesh( floorGeometry, floorMaterial );
+		floor.rotation.x = 90 * Math.PI/180;
+		floor.position.set(0,0,0);
+		everything.add( floor );
+
+
+		var box = new THREE.Mesh(
+			new THREE.BoxGeometry(1,1,1),
+			new THREE.MeshLambertMaterial()
+			);
+		box.position.set(-1,1,-1);
+		everything.add(box);
+
+		//remember to randomize
+		lineNumber = 4 + Math.random()*40;
+		wallWidth = Math.floor(Math.random()*20 + 1);
+		wallWidthSegments = Math.floor(wallWidth*6); //should be one segment every 15cm of wall
+		wallHeight = Math.floor(Math.random()*20 + 1);
+		wallHeightSegments = Math.floor(wallHeight*6);
+
+		var wall = new THREE.Mesh(
+			new THREE.PlaneGeometry(wallWidth,wallHeight,wallWidthSegments-1,wallHeightSegments-1),
+			new THREE.MeshLambertMaterial({wireframe: true})
+			);
+		wall.position.set(wallWidth/2,wallHeight/2,0);
+		everything.add(wall);
+
+		function randomPoint(x, y){
+			var randomX = Math.floor(Math.random()*(x))*(wallWidth/(wallWidthSegments-1));
+			var randomY = Math.floor(Math.random()*(y))*(wallHeight/(wallHeightSegments-1));
+			var randomPair = new THREE.Vector2(randomX, randomY);
+			return randomPair;
+		}
+
+		var redLine = [];
+
+		for(var i = 0; i < lineNumber; i++){
+			redLine[i] = new THREE.Line(
+				new THREE.Geometry,
+				new THREE.LineBasicMaterial()
+				);
+			redLine[i].material.color.setRGB(1,0,0);
+
+			var startingPoint = new THREE.Vector3((wallWidth/2) * (i%2) + (wallWidth/2)*((Math.floor(i/2))%2), (wallHeight/2) * ((Math.floor(i/2))%2) + (wallHeight/2)*((i+1)%2), 0);
+
+			var randomPair = randomPoint(wallWidthSegments, wallHeightSegments);
+
+			redLine[i].geometry.vertices.push(
+				new THREE.Vector3( startingPoint.x, startingPoint.y, 0 ),
+				new THREE.Vector3( randomPair.x, randomPair.y, 0 )
+			);
+			everything.add(redLine[i]);
+		}
+
+		var blueLine = [];
+
+		for(var i = 0; i < lineNumber; i++){
+			blueLine[i] = new THREE.Line(
+				new THREE.Geometry,
+				new THREE.LineBasicMaterial()
+				);
+			blueLine[i].material.color.setRGB(0,0,1);
+
+			var startingPoint = new THREE.Vector3((wallWidth/2) * (i%2)*2, 2*(wallHeight/2) * ((Math.floor(i/2))%2), 0);
+			var randomPair = randomPoint(wallWidthSegments, wallHeightSegments);
+
+			blueLine[i].geometry.vertices.push(
+				new THREE.Vector3( startingPoint.x, startingPoint.y, 0.001 ),
+				new THREE.Vector3( randomPair.x, randomPair.y, 0.001 )
+			);
+			everything.add(blueLine[i]);
+		}
+
+
+		var yellowLine = [];
+
+		for(var i = 0; i < lineNumber; i++){
+			yellowLine[i] = new THREE.Line(
+				new THREE.Geometry,
+				new THREE.LineBasicMaterial()
+				);
+			yellowLine[i].material.color.setRGB(1,1,0);
+
+			var startingPoint = new THREE.Vector3(wallWidth/2, wallHeight/2);
+
+			var randomPair = randomPoint(wallWidthSegments, wallHeightSegments);
+
+			yellowLine[i].geometry.vertices.push(
+				new THREE.Vector3( startingPoint.x, startingPoint.y, 0.002 ),
+				new THREE.Vector3( randomPair.x, randomPair.y, 0.002 )
+			);
+			everything.add(yellowLine[i]);
+		}
+
+		var see = new THREE.Mesh(
+			new THREE.TetrahedronGeometry(0.2),
+			new THREE.MeshBasicMaterial()
+			);
+		// everything.add(see);
+
+
+
+
+		scene.add(everything);
+		controls.setDefaultPosition([0,1.5,-1]);
+		var manualPosition = new THREE.Vector3(0,-2,0);
+		everything.position.set(manualPosition.x, manualPosition.y, manualPosition.z);
+
+		var t = 1;
+
+		var vrModeGamePadButtonPressed = false; // because of annoying way gamepad buttons work
+		var pressedController = -1;
+
+
+		/*
+		Request animation frame loop function
+		*/
+		function animate() {
+
+			if(debug) {
+				console.timeEnd("everything");
+				console.time("animate");
+			}
+
+
+			t += 1;
+
+			/*
+			Update VR headset position and apply to camera.
+			*/
+			controls.update();
+
+			/*
+			Render the scene through the VREffect.
+			*/
+			effect.render( scene, camera );
+			requestAnimationFrame( animate );
+			if(debug) {
+				console.time("everything");
+				console.timeEnd("animate");
+			}
+		}
+
+		/*
+		Kick off animation loop
+		*/
+		animate();
+
+
+
+		/*
+		Listen for double click event to enter full-screen VR mode
+		*/
+		document.body.addEventListener( 'dblclick', function() {
+			effect.setFullScreen( true );
+		});
+
+		/*
+		Listen for keyboard event and zero positional sensor on appropriate keypress.
+		*/
+		var vrMode = false;
+		function onkey(event) {
+	    event.preventDefault();
+             if (event.keyCode == 90) { // z
+	    	controls.zeroSensor(); //zero rotation
+	    } else if (event.keyCode == 70) { //f
+	    	effect.setFullScreen(true) //fullscreen
+		  } else if (event.keyCode == 73) { //i
+		    manualPosition.x += 0.01; //
+		    everything.position.x += 0.01; //
+		  } else if (event.keyCode == 75) { //k
+		    manualPosition.x -= 0.01; //
+		    everything.position.x -= 0.01; //
+		  } else if (event.keyCode == 74) { //j
+		    manualPosition.z += 0.01; //
+		    everything.position.z += 0.01; //
+		  } else if (event.keyCode == 76) { //l
+		    manualPosition.z -= 0.01; //
+		    everything.position.z -= 0.01; //
+		  } else if (event.keyCode == 85) { //u
+		    manualPosition.y += 0.01; //
+		    everything.position.y += 0.01; //
+		  } else if (event.keyCode == 79) { //o
+		    manualPosition.y -= 0.01; //
+		    everything.position.y -= 0.01; //
+	  	} else if (event.keyCode == 86 || event.keyCode == 13 || event.keyCode == 32 ) { // v or 'enter' or 'space' for VR mode
+		    vrMode = !vrMode;
+		    effect.setVRMode(vrMode);
+			}
+
+	  };
+
+	  window.addEventListener("keydown", onkey, true);
+
+
+		/*
+		Handle window resizes
+		*/
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			effect.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.addEventListener( 'resize', onWindowResize, false );
+
+		document.body.addEventListener( 'click', doClickStuff);
+
+		function doClickStuff(event) {
+		  effect.setFullScreen(true);
+
+		  if (typeof window.screen.orientation !== 'undefined' && typeof window.screen.orientation.lock === 'function') {
+		    window.screen.orientation.lock('landscape-primary');
+		  }
+
+		  if (typeof window.screen.webkitLockOrientation !== 'undefined' && typeof window.screen.webkitLockOrientation.lock === 'function') {
+		    window.screen.webkitLockOrientation('landscape-primary');
+		  }
+		}
+
+	</script>
+</html>
