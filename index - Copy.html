@@ -112,7 +112,7 @@
 		//"Each wall has an equal number of lines."
 		lineNumber = 12 + Math.random()*60; //"The number of lines... are determined by the draftsman."
 		lineWidth = 3;
-		wallSize = 7; //max size for walls
+		wallSize = 5; //max size for walls
 
 		wall = [];
 
@@ -524,8 +524,8 @@
 		everything.add(wall[7]);
 
 		for (var i = 1; i < 8; i++){
-			wall[i].position.z = 30*Math.random() - 15;
-			wall[i].position.x = 30*Math.random() - 15;
+			wall[i].position.z = 10*Math.random() - 5;
+			wall[i].position.x = 10*Math.random() - 5;
 			wall[i].rotation.y = Math.random()*Math.PI;
 		}
 
